@@ -11,19 +11,22 @@ __copyright__   = "Free to use"
 # END
     
 # Import libraries
-import random                   # For randomizing stuff
-import discord                  # For Discord abstractions
-from dotenv import load_dotenv  # For local Tokens
+import random                       # For randomizing stuff
+import discord                      # For Discord abstractions
+from discord.ext import commands    # For load_extension and other stuff
+from dotenv import load_dotenv      # For local Tokens
 
 #
 #           MAINLOOP
 #
 def main():
-    # Init client
-    client = discord.Client()
 
-    # READ TOKENS
+    # READ TOKENS FROM .ENV FILE
+    load_dotenv()   # Loads ./.env
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+
+    # Init client
+    client = commands.Bot(command_prefix='/', intents=discord.Intents.default());
 
     # List of 'Cogs' (class extensions for bot events and commands)
     cogs_files = [
