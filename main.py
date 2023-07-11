@@ -26,7 +26,7 @@ def main():
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 
     # Init client
-    client = commands.Bot(command_prefix='/', intents=discord.Intents.default());
+    client = commands.Bot(command_prefix='/', intents=discord.Intents.default())
 
     # List of 'Cogs' (class extensions for bot events and commands)
     cogs_files = [
@@ -42,4 +42,4 @@ def main():
 
 # Only run main if file was run directly by the interpreter
 if __name__ == "__main__":
-    main();
+    main()

@@ -1,6 +1,7 @@
 #   greeter.py
 
-from discord import client
+from discord.ext import commands
+import discord
 
 # Commands and events for greeting users
 class Greeter(commands.Cog):
@@ -12,4 +13,4 @@ class Greeter(commands.Cog):
     async def hello(self, ctx,  member: discord.Member = None):
         """Says hello"""
         member = member or ctx.author
-        await ctx.send(f"Hello, {member.name}")
+        await ctx.send(f"Hello, {member.name}!")
