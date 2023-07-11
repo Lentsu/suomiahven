@@ -10,7 +10,10 @@ class Greeter(commands.Cog):
         self.client = client
 
     @commands.command()
-    async def hello(self, ctx,  member: discord.Member = None):
+    async def hello(self, ctx, member: discord.Member = None):
         """Says hello"""
         member = member or ctx.author
         await ctx.send(f"Hello, {member.name}!")
+
+async def setup(client: commands.Bot) -> None:
+    await client.add_cog(Greeter(client))
