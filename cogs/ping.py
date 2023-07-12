@@ -11,7 +11,7 @@ class Ping(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         latency = round(self.client.latency * 1000)  # Calculate bot's latency in milliseconds
-        await ctx.send(f"Pong! Viive: {latency} ms")
+        await ctx.send(f"Pong! Letency: {latency} ms")
 
 def setup(client):
     client.add_cog(Ping(client))
