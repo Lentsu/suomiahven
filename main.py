@@ -25,6 +25,7 @@ class Client(commands.Bot):
 
         self.cogs_list = [
             "greeter"
+            "ping"
         ]
 
     # Load all 'Cogs' as client extensions
