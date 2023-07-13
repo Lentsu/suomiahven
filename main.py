@@ -24,7 +24,7 @@ class Client(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=discord.Intents.all())
 
         self.cogs_list = [
-            "greeter"
+            "greeter",
             "ping"
         ]
 
