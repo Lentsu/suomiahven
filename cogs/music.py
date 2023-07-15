@@ -44,4 +44,9 @@ class Music(commands.Cog):
 
 
 async def setup(client) -> None:
-    await client.add_cog(Music(client))
+    try:
+        await client.add_cog(Music(client))
+        print ("[OK]")
+    except:
+        print ("[ERROR]")
+

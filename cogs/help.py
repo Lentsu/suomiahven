@@ -23,4 +23,9 @@ class Help(commands.Cog):
         await ctx.send(embed=embed)
 
 async def setup(client: commands.Bot) -> None:
-    await client.add_cog(Help(client))
+    try:
+        await client.add_cog(Help(client))
+        print ("[OK]")
+    except:
+        print ("[ERROR]")
+
