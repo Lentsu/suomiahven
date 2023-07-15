@@ -15,7 +15,10 @@ class Help(commands.Cog):
         embed.add_field(name="!ping", value="Tarkista botin viive")
         embed.add_field(name="!hello", value="Toivota käyttäjälle 'Hello'")
         embed.add_field(name="!ohje", value="Näyttää tämän viestin")
-
+        embed.add_field(
+            name="!stop",
+            value="Käyttö: !stop\nKuvaus: Lopettaa musiikin toiston ja poistuu äänikanavalta."
+        )
 
         await ctx.send(embed=embed)
 
