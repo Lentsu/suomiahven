@@ -25,7 +25,8 @@ class Client(commands.Bot):
 
         self.cogs_list = [
             "greeter",
-            "ping"
+            "ping",
+            "help"
         ]
 
     # Load all 'Cogs' as client extensions
@@ -39,6 +40,7 @@ class Client(commands.Bot):
         print("Bot ID: " + str(self.user.id))
         synced = await self.tree.sync()
         print("Slash commands synced?" + str(len(synced)))
+        await self.change_presence(activity=discord.Game(name="!ohje"))
 #
 #           MAINLOOP
 #
