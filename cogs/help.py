@@ -1,26 +1,32 @@
 #   help.py
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
+# Create the Help Cog to be loaded
 class Help(commands.Cog):
-    def __init__(self, client):
+
+    def __init__(self, client) -> None:
         self.client = client
 
-    @commands.command(name="ohje")
-    async def help(self, ctx):
-        embed = discord.Embed(title="Botin komennot", description="Tässä on lista saatavilla olevista komennoista", color=discord.Color.blue())
+    @app_commands.command(name="help")
+    async def help(self, interaction: discord.Interaction) -> None:
+        """ Displays a table of bot commands """
+        # Create an embed of the title 
+        em = discord.Embed(title="Commands", description="Here's a list of my bot commands.", color=discord.Color.blue())
 
-        # Lisää komennot embediin
-        embed.add_field(name="!ping", value="Tarkista botin viive")
-        embed.add_field(name="!hello", value="Toivota käyttäjälle 'Hello'")
-        embed.add_field(name="!ohje", value="Näyttää tämän viestin")
-        embed.add_field(
-            name="!stop",
-            value="Käyttö: !stop\nKuvaus: Lopettaa musiikin toiston ja poistuu äänikanavalta."
-        )
+        # Cycle through all commands 
+        for command in self.client.tree.walk_commands():
+            # Add the command to the embed
+            em.add_field (
+                name=f"/{command.name}", 
+                value=command.description if command.description else command.name,
+                inline=False
+            )
 
-        await ctx.send(embed=embed)
+        # Send the embed as a reponse to interaction
+        await interaction.response.send_message(embed=em, ephemeral=True)
 
 async def setup(client: commands.Bot) -> None:
     try:
