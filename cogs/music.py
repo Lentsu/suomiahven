@@ -1,35 +1,71 @@
 #   music.py
 
 import discord
+import youtube_dl
 from discord import app_commands
 from discord.ext import commands
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 import os
 
+# YTDL options
+ytdl_format_options = {
+    'format': 'bestaudio/best',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+
+# FFMPG options
+ffmpeg_options = {
+    'options': '-vn'
+}
+
+# Create a ytdl instance with format options
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+# YTDL Source class to interface with Cog class
+class YTDLSource (discord.PCMVolumeTransformer):
+
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+
+        self.data = data
+        self.title = data.get('title')
+        self.url = data.get('url')
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = 
+
+
+# Cog class to interface with bot client
 class Music(commands.Cog):
 
     def __init__(self, client):
         self.client = client
-        self.api_key = os.getenv('AIzaSyAXe3Zmfy4PHfio7KPbnQ55bCzkUT4mbxM')
 
-    @commands.command()
-    async def play(self, ctx, link):
-        # Tarkista, että komennon lähettäjä on äänikanavalla
-        if ctx.author.voice is None:
-            await ctx.send("Sinun täytyy olla äänikanavalla käyttääksesi tätä komentoa.")
+    @app_commands.command()
+    async def play(self, interaction: discord.Interaction, search):
+        
+        # Check if the caller is on voice channel
+        if (!interaction.member.voice.channel)
+            await interaction.response.send_message("User not on voice channel!")
             return
 
-        # Liity käyttäjän äänikanavalle
-        voice_channel = ctx.author.voice.channel
+        # Join the voice channel
+        voice_channel = interaction.member.voice.channel
         voice_client = await voice_channel.connect()
 
-        # Tarkista, että botilla ei ole joista soittamassa
+        # Check if nothing is currently playing
         if voice_client.is_playing():
-            await ctx.send("Jo toistetaan musiikkia. Odota, että nykyinen kappale päättyy.")
+            # TODO: Add the 
             return
-
-        #TODO
 
     @commands.command()
     async def stop(self, ctx):
