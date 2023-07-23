@@ -27,7 +27,7 @@ class Client(commands.Bot):
             "greeter",
             "ping",
             "help",
-            "music"
+            "music_new"
             #"template" #(This is needed for a cog to load)
         ]
 
