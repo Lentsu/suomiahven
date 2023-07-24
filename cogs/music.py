@@ -10,22 +10,20 @@ import functools
 import itertools
 import math
 import random
+from async_timeout import timeout
 
 import discord
-import youtube_dl
-from async_timeout import timeout
+import yt_dlp
 from discord.ext import commands
 
 # Silence useless bug reports messages
-youtube_dl.utils.bug_reports_message = lambda: ''
+yt_dlp.utils.bug_reports_message = lambda: ''
 
 class VoiceError(Exception):
     pass
 
-
 class YTDLError(Exception):
     pass
-
 
 class YTDLSource(discord.PCMVolumeTransformer):
     YTDL_OPTIONS = {
@@ -42,14 +40,26 @@ class YTDLSource(discord.PCMVolumeTransformer):
         'no_warnings': True,
         'default_search': 'auto',
         'source_address': '0.0.0.0',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'postprocessor_args': [
+            '-ar', '48000',
+            '-vn',
+            '-b:a', '192k',
+            '-f', 'mp3'
+        ],
     }
 
     FFMPEG_OPTIONS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
+        'executable': 'C:/ProgramData/chocolatey/lib/ffmpeg/tools/ffmpeg/bin/ffmpeg.exe',
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     }
 
-    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+    ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
     def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
@@ -135,7 +145,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         return ', '.join(duration)
 
-
 class Song:
     __slots__ = ('source', 'requester')
 
@@ -150,11 +159,10 @@ class Song:
                  .add_field(name='Duration', value=self.source.duration)
                  .add_field(name='Requested by', value=self.requester.mention)
                  .add_field(name='Uploader', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
-                 # .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
+                 .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
                  .set_thumbnail(url=self.source.thumbnail))
 
         return embed
-
 
 class SongQueue(asyncio.Queue):
     def __getitem__(self, item):
@@ -177,7 +185,6 @@ class SongQueue(asyncio.Queue):
 
     def remove(self, index: int):
         del self._queue[index]
-
 
 class VoiceState:
     def __init__(self, bot: commands.Bot, ctx: commands.Context):
@@ -202,9 +209,9 @@ class VoiceState:
     def loop(self):
         return self._loop
 
-    @loop.setter
-    def loop(self, value: bool):
-        self._loop = value
+    #@loop.setter
+    #def loop(self, value: bool):
+    #    self._loop = value
 
     @property
     def volume(self):
@@ -219,32 +226,33 @@ class VoiceState:
         return self.voice and self.current
 
     async def audio_player_task(self):
-        while True:
-            self.next.clear()
+        self.next.clear()
 
-            if not self.loop:
-                # Try to get the next song within 3 minutes.
-                # If no song will be added to the queue in time,
-                # the player will disconnect due to performance
-                # reasons.
-                try:
-                    async with timeout(604800):  # 3 minutes
-                        self.current = await self.songs.get()
-                except asyncio.TimeoutError:
-                    self.bot.loop.create_task(self.stop())
-                    return
+        if not self.loop:
+            try:
+                async with timeout(300):  # 5 minutes
+                    self.current = await self.songs.get()
+            except asyncio.TimeoutError:
+                await self.stop()
+                return
 
-            self.current.source.volume = self._volume
-            self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.source.channel.send(embed=self.current.create_embed())
+        self.current.source.volume = self._volume
+        self.voice.play(self.current.source, after=lambda e: self.bot.loop.create_task(self.play_next_song(e)))
 
-            await self.next.wait()
+        await self.next.wait()
 
-    def play_next_song(self, error=None):
+    async def play_next_song(self, error=None):
+        print("Playing next song.")
         if error:
             raise VoiceError(str(error))
 
-        self.next.set()
+        if not self.songs.empty():
+            self.current = await self.songs.get()
+            self.current.source.volume = self._volume
+            self.voice.play(self.current.source, after=self.play_next_song)
+            await self.current.source.channel.send(embed=self.current.create_embed())
+        else:
+            await self.stop()
 
     def skip(self):
         self.skip_votes.clear()
@@ -253,14 +261,15 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
-        self.songs.clear()
-
         if self.voice:
             await self.voice.disconnect()
             self.voice = None
+        else:
+            raise VoiceError('Bot is not connected to any voice channel.')
 
+        self.songs.clear()
 
-class music(commands.Cog):
+class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.voice_states = {}
@@ -319,7 +328,7 @@ class music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
 
     @commands.command(name='leave', aliases=['disconnect', 'dc'])
-    # @commands.has_permissions(manage_guild=True)
+    @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
 
@@ -346,11 +355,13 @@ class music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
+        if not ctx.voice_state.current:
+            return await ctx.send('Nothing is currently playing.')
 
         await ctx.send(embed=ctx.voice_state.current.create_embed())
 
     @commands.command(name='pause', aliases=['pa'])
-    # @commands.has_permissions(manage_guild=True)
+    @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
@@ -359,7 +370,7 @@ class music(commands.Cog):
             await ctx.message.add_reaction('⏸️')
 
     @commands.command(name='resume', aliases=['re'])
-    # @commands.has_permissions(manage_guild=True)
+    @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
@@ -368,7 +379,7 @@ class music(commands.Cog):
             await ctx.message.add_reaction('▶️')
 
     @commands.command(name='stop', aliases=['close'])
-    # @commands.has_permissions(manage_guild=True)
+    @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
 
@@ -380,30 +391,13 @@ class music(commands.Cog):
 
     @commands.command(name='skip', aliases=['sk'])
     async def _skip(self, ctx: commands.Context):
-        """Vote to skip a song. The requester can automatically skip.
-        3 skip votes are needed for the song to be skipped.
-        """
+        """Skip the currently playing song."""
 
         if not ctx.voice_state.is_playing:
             return await ctx.send('Not playing any music right now...')
 
-        voter = ctx.message.author
-        if voter == ctx.voice_state.current.requester:
-            await ctx.message.add_reaction('⏭')
-            ctx.voice_state.skip()
-
-        elif voter.id not in ctx.voice_state.skip_votes:
-            ctx.voice_state.skip_votes.add(voter.id)
-            total_votes = len(ctx.voice_state.skip_votes)
-
-            if total_votes >= 3:
-                await ctx.message.add_reaction('⏭')
-                ctx.voice_state.skip()
-            else:
-                await ctx.send('Skip vote added, currently at **{}/3**'.format(total_votes))
-
-        else:
-            await ctx.send('You have already voted to skip this song.')
+        ctx.voice_state.skip()
+        await ctx.message.add_reaction('⏭')
 
     @commands.command(name='queue', aliases=['q'])
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -473,7 +467,7 @@ class music(commands.Cog):
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
-
+        print("Play command invoked.")
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
 
@@ -500,7 +494,7 @@ class music(commands.Cog):
 
 async def setup(client: commands.Bot) ->None:
     try:
-        await client.add_cog(music(client))
+        await client.add_cog(Music(client))
         print("[OK]")
     except:
         print ("[ERROR]")
