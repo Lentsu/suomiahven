@@ -1,3 +1,4 @@
+import os
 #   
 #   CONTAINS A LOT OF CODE WRITTEN BY paradox4280 in the following GIST:
 #       https://gist.github.com/paradox4280/1d35d6fc96d18918b384a09d2a38a7ea
@@ -15,6 +16,11 @@ from async_timeout import timeout
 import discord
 import yt_dlp
 from discord.ext import commands
+
+# Read required secrets from the ROOT ENV file
+from dotenv import load_dotenv
+load_dotenv()
+FFMPEG_EXECUTABLE = os.getenv("FFMPEG_PATH")
 
 # Silence useless bug reports messages
 yt_dlp.utils.bug_reports_message = lambda: ''
@@ -55,7 +61,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     FFMPEG_OPTIONS = {
         'options': '-vn',
-        'executable': 'C:/ProgramData/chocolatey/lib/ffmpeg/tools/ffmpeg/bin/ffmpeg.exe',
+        'executable':FFMPEG_EXECUTABLE,
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     }
 
