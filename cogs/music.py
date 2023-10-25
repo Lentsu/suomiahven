@@ -11,6 +11,7 @@ import functools
 import itertools
 import math
 import random
+from typing import Optional
 from async_timeout import timeout
 
 import discord
@@ -215,9 +216,9 @@ class VoiceState:
     def loop(self):
         return self._loop
 
-    #@loop.setter
-    #def loop(self, value: bool):
-    #    self._loop = value
+    @loop.setter
+    def loop(self, value: bool):
+        self._loop = value
 
     @property
     def volume(self):
@@ -232,9 +233,8 @@ class VoiceState:
         return self.voice and self.current
 
     async def audio_player_task(self):
-        self.next.clear()
-
-        if not self.loop:
+        while True:
+            self.next.clear()
             try:
                 async with timeout(300):  # 5 minutes
                     self.current = await self.songs.get()
@@ -242,23 +242,41 @@ class VoiceState:
                 await self.stop()
                 return
 
-        self.current.source.volume = self._volume
-        self.voice.play(self.current.source, after=lambda e: self.bot.loop.create_task(self.play_next_song(e)))
-
-        await self.next.wait()
-
-    async def play_next_song(self, error=None):
-        print("Playing next song.")
-        if error:
-            raise VoiceError(str(error))
-
-        if not self.songs.empty():
-            self.current = await self.songs.get()
             self.current.source.volume = self._volume
-            self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.source.channel.send(embed=self.current.create_embed())
-        else:
-            await self.stop()
+            self.voice.play(self.current.source, after=lambda e: self.bot.loop.call_soon_threadsafe(self.next.set))
+            await self._ctx.send(embed=self.current.create_embed())
+            await self.next.wait()
+
+            if self.loop:
+                # Kutsu play-komentoa uudelleen samalla URL-linkillä
+                ctx = self._ctx
+                ctx.voice_state = self
+                await ctx.invoke(self.bot.get_command('play'), search=self.current.source.url)
+
+            await asyncio.sleep(1)  # Odota sekunti ennen seuraavan kappaleen soittamista
+
+
+
+
+
+
+
+
+
+    async def play_next_song(self, error: Optional[Exception]):
+        if error:
+            await self._ctx.send('An error occurred: {}'.format(str(error)))
+        if self.loop:
+            await self.songs.put(self.current)
+        self.next.set()
+
+
+
+
+            #await asyncio.sleep(1)  # Odota sekunti
+            #await self._ctx.invoke(self.bot.get_command('now'))  # Suorita /now komento
+
+
 
     def skip(self):
         self.skip_votes.clear()
@@ -439,17 +457,17 @@ class Music(commands.Cog):
 
     @commands.command(name='loop')
     async def _loop(self, ctx: commands.Context):
-        """Loops the currently playing song.
-
-        Invoke this command again to unloop the song.
-        """
-
+        """Loops the currently playing song."""
         if not ctx.voice_state.is_playing:
-            return await ctx.send('Nothing being played at the moment.')
+            return await ctx.send('Nothing is currently playing.')
 
-        # Inverse boolean value to loop and unloop.
         ctx.voice_state.loop = not ctx.voice_state.loop
-        await ctx.message.add_reaction('✅')
+        print("Loop is now", "enabled" if ctx.voice_state.loop else "disabled")
+        await ctx.send('Loop is now ' + ('enabled' if ctx.voice_state.loop else 'disabled'))
+
+
+
+
 
     @commands.command(name='play', aliases=['p'])
     async def _play(self, ctx: commands.Context, *, search: str):
