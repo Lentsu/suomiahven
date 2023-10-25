@@ -19,28 +19,29 @@ FFMPEG_EXECUTABLE = os.getenv("FFMPEG_PATH")
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# YTDLP Auxillary class to search yt 
+# Auxillary Class to search yt 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-class YTDL_AUX:
-    # Options for YTDL
-    YTDL_OPTIONS = {
-        'format': 'bestaudio/best', # Best audio format
-        'noplaylist': 'True' # Don't accept playlists
-    }
+# Options for YTDL
+class YT:
+    def __init__(self) -> None:
+        self.YTDL_OPTIONS = {
+            'format': 'bestaudio/best', # Best audio format
+            'noplaylist': True,         # Don't accept playlists
+            'quiet': True,              # Be quiet
+        }
 
-    # IMPORTANT
-    ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS) # NOTE: is this just ytdl?
+        self.ytdl = yt_dlp.YoutubeDL(self.YTDL_OPTIONS) # NOTE: is this just ytdl?
 
     # Search Youtube and return url if something is found
-    @classmethod
     def search_yt(self, item):
         try:
             # Try to search and extract info from the first result in youtube
-            info = ytdl.extract_info("ytsearch:%s" % item, download=False)['entries'][0]
+            info = self.ytdl.extract_info("ytsearch:%s" % item, download=False)['entries'][0]
         except Exception:
+            print("Couldn't find SONG!!!")
             return False
         # Return the info as a custom pair (url, title) if found.
-        return {'source': info['formats'[0]['url']], 'title': info['title']}
+        return {'source': info['formats'][0]['url'], 'title': info['title']}
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,7 +73,10 @@ class Music(commands.Cog):
     # Constructor
     def __init__(self, client) -> None:
         self.client = client
-        
+
+        # YT Auxillary class instance
+        self.YT = YT()
+
         # Modulator instance!
         self.modulator = Modulator()
 
@@ -90,10 +94,12 @@ class Music(commands.Cog):
 
             # Get the url of the first song in the queue
             url = self.play_queue[0][0]['source']
-            self.play_queue.pop(0) # Remove the song from queue
+            print(url)
 
             # Create a source from the url
             source = self.modulator.create_source(url)
+            
+            self.play_queue.pop(0) # Remove the song from queue
 
             # Play the source audio and call this method again recursively
             self.vc.play(source, after=lambda e: self.play_next())
@@ -109,6 +115,7 @@ class Music(commands.Cog):
             
             # Get the url of the first song in the queue and make a source out of it
             url = self.play_queue[0][0]['source']
+            print(url)
             source = self.modulator.create_source(url)
 
             # If no voice channel or not connected to that
@@ -134,23 +141,47 @@ class Music(commands.Cog):
 
     # PLAY COMMAND!
     @app_commands.command(name="play")
-    async def play(self, interaction: discord.Interaction, query: str) -> None:
+    async def play(self, interaction: discord.Interaction, search: str) -> None:
         """ Search and play music """
 
-        # Get the voice channel of the caller
-        voice_channel = interaction.user.voice.channel
-        if voice_channel == None:
+        # Get the voice state of the caller
+        voice = interaction.user.voice
+        if voice == None:
             await interaction.response.send_message(":fish: Join a voice channel first! :fish:")
         else:
-            song = YTDL_AUX.search_yt(query)
+            voice_channel = voice.channel
+            song = self.YT.search_yt(search)
             if type(song) == type(True): # If search failed!
-                await interaction.response.send_message(":man_shrugging: Can't find that... :man_shrugging:")
+                await interaction.response.send_message(":man_shrugging: Can't find that... :man_shrugging:", ephemeral=True)
             else:
-                await interaction.response.send_message(f":fishing_pole_and_fish: Enqueued {song.")
-
-
-
+                await interaction.response.send_message(f":fishing_pole_and_fish: Enqueued {song['title']}")
+                self.play_queue.append([song, voice_channel])
     
+                # If not playing already, call play_music
+                if self.is_playing == False:
+                    await self.play_music(interaction)
+
+    # SKIP COMMAND
+    @app_commands.command(name="skip")
+    async def skip(self, interaction: discord.Interaction) -> None:
+        if self.voice_channel != None and self.voice_channel:
+            # Stop playing music (current song)
+            self.voice_channel.stop()
+            # Call the play music again
+            await self.play_music(interaction)
+
+    # JOIN COMMAND
+
+
+    # LEAVE COMMAND!
+    @app_commands.command(name="leave")
+    async def leave(self, interaction: discord.Interaction) -> None:
+        # If on a voice channel
+        if self.voice_channel == None:
+            await interaction.response.send_message(":bubbles:")
+        else:
+            self.is_playing = False
+            await self.voice_channel.disconnect()
 
 
 async def setup(client: commands.Bot) -> None:
