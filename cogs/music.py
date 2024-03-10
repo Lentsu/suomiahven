@@ -1,10 +1,5 @@
 import os
-#   
-#   CONTAINS A LOT OF CODE WRITTEN BY paradox4280 in the following GIST:
-#       https://gist.github.com/paradox4280/1d35d6fc96d18918b384a09d2a38a7ea
-#
-#   NO LICENSE WAS PROVIDED.
-#
+
 
 import asyncio
 import functools
@@ -13,6 +8,10 @@ import math
 import random
 from typing import Optional
 from async_timeout import timeout
+import pyttsx3
+import tempfile
+from pydub import AudioSegment
+
 
 import discord
 import yt_dlp
@@ -22,6 +21,34 @@ from discord.ext import commands
 from dotenv import load_dotenv
 load_dotenv()
 FFMPEG_EXECUTABLE = os.getenv("FFMPEG_PATH")
+
+
+
+def adjust_volume(file_path, volume_change_dB):
+    sound = AudioSegment.from_file(file_path)
+    louder_sound = sound + volume_change_dB
+    louder_sound.export(file_path, format="wav")
+
+async def async_text_to_speech(text, volume_change_dB=40, speech_rate=125):
+    def synch_text_to_speech():
+        engine = pyttsx3.init()
+        temp_file, temp_file_path = tempfile.mkstemp(suffix='.wav')
+        os.close(temp_file)  # Suljetaan tiedosto välittömästi sen luomisen jälkeen
+
+        engine.setProperty('rate', speech_rate)
+        engine.save_to_file(text, temp_file_path)
+        engine.runAndWait()
+
+        # Nosta äänitiedoston äänenvoimakkuutta
+        adjust_volume(temp_file_path, volume_change_dB)
+        
+        return temp_file_path
+    
+    # Suorittaa synkronisen funktion asynkronisesti
+    return await asyncio.to_thread(synch_text_to_speech)
+
+
+
 
 # Silence useless bug reports messages
 yt_dlp.utils.bug_reports_message = lambda: ''
@@ -467,7 +494,26 @@ class Music(commands.Cog):
         await ctx.send('Loop is now ' + ('enabled' if ctx.voice_state.loop else 'disabled'))
 
 
+    
+    @commands.command(name='puhu', help='Muuttaa annetun tekstin puheeksi ja toistaa sen äänikanavalla.')
+    async def puhu(self, ctx, *, teksti: str):
+        if not ctx.message.author.voice:
+            await ctx.send("Sinun täytyy olla äänikanavalla käyttääksesi tätä komentoa.")
+            return
 
+        voice_channel = ctx.message.author.voice.channel
+        if ctx.voice_client is not None:
+            await ctx.voice_client.move_to(voice_channel)
+        else:
+            await voice_channel.connect()
+
+        tts_filename = await async_text_to_speech(teksti)  # Muutettu käyttämään asynkronista versiota
+        ctx.voice_client.play(discord.FFmpegPCMAudio(executable=FFMPEG_EXECUTABLE, source=tts_filename), after=lambda e: print('TTS valmis.', e))
+
+        while ctx.voice_client.is_playing():
+            await asyncio.sleep(1)
+        # Tiedoston siivous
+        os.remove(tts_filename)
 
 
     @commands.command(name='play', aliases=['p'])
