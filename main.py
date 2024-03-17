@@ -2,12 +2,10 @@
 import os                       # For shell
 
 # BEGIN HEADER
-
-""" A Discord bot written for the private Discord server Perch of Finland"""
+""" An extensible and modular Discord bot written for personal use"""
 
 __author__      = "Lentsu, Veritorakka"
 __copyright__   = "Free to use"
-
 # END
     
 # Import libraries
@@ -54,7 +52,7 @@ class Client(commands.Bot):
         # Print the activity status
         status = "/help (Bot in progress)"
         await self.change_presence(activity=discord.Game(name=status))
-#
+
 #           MAINLOOP
 #
 if __name__ == "__main__":
