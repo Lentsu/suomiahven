@@ -16,7 +16,7 @@ import yt_dlp
 from discord.ext import commands
 
 # Import auxillary functions 
-from cogs.aux import try_wrap
+from cogs.auxillary import try_wrap
 
 # Read required secrets from the ROOT ENV file
 from dotenv import load_dotenv

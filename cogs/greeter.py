@@ -5,7 +5,7 @@ from discord import app_commands
 import discord
 
 # Import auxillary methods
-from cogs.aux import try_wrap
+from cogs.auxillary import try_wrap
 
 # Commands and events for greeting users
 class Greeter(commands.Cog):

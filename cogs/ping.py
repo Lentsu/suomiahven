@@ -5,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 # Import auxillary functions 
-from cogs.aux import try_wrap
+from cogs.auxillary import try_wrap
 
 # Commands and events for testing bot's latency
 class Ping(commands.Cog):

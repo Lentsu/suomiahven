@@ -5,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 # Import auxillary functions 
-from cogs.aux import try_wrap
+from cogs.auxillary import try_wrap
 
 # Create the Help Cog to be loaded
 class Help(commands.Cog):
