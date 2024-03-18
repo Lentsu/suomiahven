@@ -284,27 +284,15 @@ class VoiceState:
             await asyncio.sleep(1)  # Odota sekunti ennen seuraavan kappaleen soittamista
 
 
-
-
-
-
-
-
-
     async def play_next_song(self, error: Optional[Exception]):
         if error:
             await self._ctx.send('An error occurred: {}'.format(str(error)))
         if self.loop:
             await self.songs.put(self.current)
         self.next.set()
-
-
-
-
+            
             #await asyncio.sleep(1)  # Odota sekunti
             #await self._ctx.invoke(self.bot.get_command('now'))  # Suorita /now komento
-
-
 
     def skip(self):
         self.skip_votes.clear()
@@ -497,22 +485,18 @@ class Music(commands.Cog):
 
     
     @commands.command(name='puhu', help='Muuttaa annetun tekstin puheeksi ja toistaa sen äänikanavalla.')
-    async def puhu(self, ctx, *, teksti: str):
+    async def _puhu(self, ctx, *, teksti: str):
         if not ctx.message.author.voice:
             await ctx.send("Sinun täytyy olla äänikanavalla käyttääksesi tätä komentoa.")
             return
 
-        voice_channel = ctx.message.author.voice.channel
-        if ctx.voice_client is not None:
-            await ctx.voice_client.move_to(voice_channel)
-        else:
-            await voice_channel.connect()
+        # Join the voice channel if not already there
+        if not ctx.voice_state.voice:
+            await ctx.invoke(self._join)
 
         tts_filename = await async_text_to_speech(teksti)  # Muutettu käyttämään asynkronista versiota
-        ctx.voice_client.play(discord.FFmpegPCMAudio(executable=FFMPEG_EXECUTABLE, source=tts_filename), after=lambda e: print('TTS valmis.', e))
+        await ctx.voice_client.play(discord.FFmpegPCMAudio(executable=FFMPEG_EXECUTABLE, source=tts_filename), after=lambda e: print('TTS valmis.', e))
 
-        while ctx.voice_client.is_playing():
-            await asyncio.sleep(1)
         # Tiedoston siivous
         os.remove(tts_filename)
 
@@ -544,6 +528,7 @@ class Music(commands.Cog):
 
     @_join.before_invoke
     @_play.before_invoke
+    @_puhu.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError('You are not connected to any voice channel.')

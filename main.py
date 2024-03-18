@@ -33,7 +33,7 @@ class Client(commands.Bot):
     async def setup_hook(self):
         for cog in self.cogs_list:
             print(f"Loading {cog}", end='\t\t')
-            await client.load_extension(f"cogs.{cog}")
+            await self.load_extension(f"cogs.{cog}")
 
     # When connection is made
     async def on_ready(self):
@@ -53,9 +53,7 @@ class Client(commands.Bot):
         status = "/help (Bot in progress)"
         await self.change_presence(activity=discord.Game(name=status))
 
-#
-#           MAIN
-#
+# The main function
 def main():
     # READ TOKENS FROM .ENV FILE
     load_dotenv()   # Loads ./.env
@@ -64,6 +62,6 @@ def main():
     client = Client()
     client.run(DISCORD_TOKEN)
 
+# If this script was called directly
 if __name__ == "__main__":
-    # Run the main function
-    main();
+    main()
