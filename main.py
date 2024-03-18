@@ -53,12 +53,17 @@ class Client(commands.Bot):
         status = "/help (Bot in progress)"
         await self.change_presence(activity=discord.Game(name=status))
 
-#           MAINLOOP
 #
-if __name__ == "__main__":
+#           MAIN
+#
+def main():
     # READ TOKENS FROM .ENV FILE
     load_dotenv()   # Loads ./.env
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
     # Run client
     client = Client()
     client.run(DISCORD_TOKEN)
+
+if __name__ == "__main__":
+    # Run the main function
+    main();
