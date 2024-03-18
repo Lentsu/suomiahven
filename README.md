@@ -11,11 +11,13 @@ An extendable Finnish Discord bot.
 ## Dependencies
 * Core
     - discord.py
-    - dotenv
+    - python-dotenv
 * Music cog
     - yt-dlp
     - pyttsx3
+    - pydub
+    - PyNaCl
 
 ## Running the bot:
 
-Section TODO
+Run the `run.py` installer or install the files via `pip3 install -r requirements.txt` and execute the `main.py` directly.
