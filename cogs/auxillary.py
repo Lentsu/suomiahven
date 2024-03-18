@@ -1,4 +1,4 @@
-# aux.py
+# auxillary.py
 
 """ Auxillary functions for cogs to use """
 
