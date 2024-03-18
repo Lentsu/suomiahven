@@ -4,6 +4,9 @@ from discord.ext import commands
 from discord import app_commands
 import discord
 
+# Import auxillary methods
+from cogs.aux import try_wrap
+
 # Commands and events for greeting users
 class Greeter(commands.Cog):
 
@@ -15,10 +18,6 @@ class Greeter(commands.Cog):
         """Says hello"""
         await interaction.response.send_message(f"Hello, {interaction.user.display_name}!", ephemeral=True)
 
+@try_wrap
 async def setup(client: commands.Bot) -> None:
-    try:
-        await client.add_cog(Greeter(client))
-        print ("[OK]")
-    except:
-        print ("[ERROR]")
-
+    await client.add_cog(Greeter(client))

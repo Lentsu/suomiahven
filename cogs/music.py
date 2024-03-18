@@ -1,6 +1,5 @@
 import os
 
-
 import asyncio
 import functools
 import itertools
@@ -12,10 +11,12 @@ import pyttsx3
 import tempfile
 from pydub import AudioSegment
 
-
 import discord
 import yt_dlp
 from discord.ext import commands
+
+# Import auxillary functions 
+from cogs.aux import try_wrap
 
 # Read required secrets from the ROOT ENV file
 from dotenv import load_dotenv
@@ -551,10 +552,7 @@ class Music(commands.Cog):
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError('Bot is already in a voice channel.')
 
+@try_wrap
 async def setup(client: commands.Bot) ->None:
-    try:
-        await client.add_cog(Music(client))
-        print("[OK]")
-    except:
-        print ("[ERROR]")
+    await client.add_cog(Music(client))
 
