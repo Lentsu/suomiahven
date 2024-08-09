@@ -22,11 +22,11 @@ class Client(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=discord.Intents.all())
         self.cogs_list = [
-            "greeter",
-            "ping",
-            "help",
-            "music"
-            #"template" #(This is needed for a cog to load)
+            #"greeter",
+            #"ping",
+            #"help",
+            #"music"
+            "template" #(This is needed for a cog to load)
         ]
 
     # Load all 'Cogs' as client extensions

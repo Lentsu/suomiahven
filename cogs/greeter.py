@@ -16,7 +16,7 @@ class Greeter(commands.Cog):
     @app_commands.command(name="hello")
     async def hello(self, interaction: discord.Interaction) -> None:
         """Says hello"""
-        await interaction.response.send_message(f"Hello, {interaction.user.display_name}!", ephemeral=True)
+        await interaction.response.send_message(f"Hello, {interaction.user.display_name}!", ephemeral=False)
 
 @try_wrap
 async def setup(client: commands.Bot) -> None:

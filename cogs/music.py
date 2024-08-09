@@ -1,5 +1,7 @@
 #   music.py
 import os
+import math
+import asyncio
 
 # Discord imports
 from discord.ext import commands
@@ -8,6 +10,9 @@ import discord
 
 # Import local auxillary functions
 from cogs.auxillary import try_wrap
+
+# 3rd party imports
+import yt_dlp
 
 # Read required secrets from the ROOT ENV file
 from dotenv import load_dotenv
@@ -53,6 +58,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
+
     def __init__(self, interaction: discord.Interaction, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5) -> None:
         super().__init__(source, volume)
 
@@ -80,7 +86,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     @classmethod
     # NOTE: cls is like self but for class instances
-    async def create_source(cls, interaction: discord.Interaction, search: str, *, loop: asyncio.BaseEventLoop = None) -> YTDLSource:
+    async def create_source(cls, interaction: discord.Interaction, search: str, *, loop: asyncio.BaseEventLoop = None): # TODO This returns YTDLSource, what's the return type??
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
@@ -210,5 +216,5 @@ class Music(commands.Cog):
 @try_wrap
 async def setup(client: commands.Bot) -> None:
     """ Tries to load the Cog to the client and prints [OK] on success """
-    await client.add_cog(Template(client))
+    await client.add_cog(Music(client))
 

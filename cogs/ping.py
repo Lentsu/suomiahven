@@ -17,7 +17,7 @@ class Ping(commands.Cog):
     async def ping(self, interaction: discord.Interaction) -> None:
         """ Prints the bot's client latency in milliseconds. """
         latency = round(self.client.latency * 1000)  # Calculate bot's latency in milliseconds
-        await interaction.response.send_message(f"Pong! Latency: {latency} ms", ephemeral=True)
+        await interaction.response.send_message(f"Pong! Latency: {latency} ms", ephemeral=False)
 
 @try_wrap
 async def setup(client) -> None:
