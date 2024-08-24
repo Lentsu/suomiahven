@@ -267,7 +267,9 @@ class VoiceState:
                 async with timeout(300):  # 5 minutes
                     self.current = await self.songs.get()
             except asyncio.TimeoutError:
-                await self.stop()
+                ctx = self._ctx  # Hae nykyinen konteksti
+                ctx.voice_state = self  # Aseta äänitila kontekstiin
+                await ctx.invoke(self.bot.get_command('leave'))  # Kutsu leave-komentoa aikakatkaisun sattuessa
                 return
 
             self.current.source.volume = self._volume
