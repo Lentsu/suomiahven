@@ -263,13 +263,18 @@ class VoiceState:
     async def audio_player_task(self):
         while True:
             self.next.clear()
+            
             try:
                 async with timeout(300):  # 5 minutes
                     self.current = await self.songs.get()
             except asyncio.TimeoutError:
                 ctx = self._ctx  # Hae nykyinen konteksti
-                ctx.voice_state = self  # Aseta äänitila kontekstiin
-                await ctx.invoke(self.bot.get_command('leave'))  # Kutsu leave-komentoa aikakatkaisun sattuessa
+                voice_client = ctx.voice_client  # Hae puhetilassa oleva asiakas
+
+                if voice_client is not None and voice_client.is_connected():
+                    if not voice_client.is_playing():  # Tarkista, soittaako botti tällä hetkellä musiikkia
+                        ctx.voice_state = self  # Aseta äänitila kontekstiin
+                        await ctx.invoke(self.bot.get_command('leave'))  # Kutsu leave-komentoa aikakatkaisun sattuessa
                 return
 
             self.current.source.volume = self._volume
