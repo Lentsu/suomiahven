@@ -10,6 +10,7 @@ import discord
 
 # Import local auxillary functions
 from cogs.auxillary import try_wrap
+import audio_manager
 
 # 3rd party imports
 import yt_dlp
@@ -58,7 +59,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
-
     def __init__(self, interaction: discord.Interaction, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5) -> None:
         super().__init__(source, volume)
 
@@ -85,10 +85,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '**{0.title}** by **{0.uploader}**'.format(self)
 
     @classmethod
-    # NOTE: cls is like self but for class instances
-    async def create_source(cls, interaction: discord.Interaction, search: str, *, loop: asyncio.BaseEventLoop = None): # TODO This returns YTDLSource, what's the return type??
+    # NOTE: Returns an (audio_file, interaction) tuple
+    async def create_source(cls, interaction: discord.Interaction, search: str, *, loop: asyncio.BaseEventLoop = None):
+        """Creates a tuple of (audio_file, interaction) from a search query or URL."""
         loop = loop or asyncio.get_event_loop()
-
         partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
         data = await loop.run_in_executor(None, partial)
 
@@ -124,7 +124,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 except IndexError:
                     raise YTDLError('Couldn\'t retrieve any matches for `{}`'.format(webpage_url))
 
-        return cls(interaction, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+        audio_file = discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS)
+        return (audio_file, interaction)    
 
     @staticmethod
     def parse_duration(duration: int) -> str:
@@ -148,9 +149,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Song:
     __slots__ = ('source', 'requester')
 
-    def __init__(self, source: YTDLSource) -> None:
-        self.source = source
-        self.requester = source.requester
+    def __init__(self, audio_tuple) -> None:
+        audio_file, interaction = audio_tuple
+        self.audio_file = audio
+        self.requester = interaction.user 
 
     def create_embed(self) -> discord.Embed:
         embed = (
@@ -166,34 +168,6 @@ class Song:
 
         return embed
 
-# A class for maintaining music queues
-class SongQueue(asyncio.Queue):   # NOTE: Extends asyncio.Queue:
-                                  # https://docs.python.org/3/library/asyncio-queue.html
-
-    # Used for random accessing sections from the queue (used by the queue command)
-    def __getitem__(self, item):
-        if isinstance(item, slice):
-            return list(itertools.islice(self._queue, item.start, item.stop, item.step))
-        else:
-            return self._queue[item]
-
-    # NOTE: SongQueue.put and SongQueue.get are the primary ways to interact with the class
-
-    def __iter__(self) -> None:
-        return self._queue.__iter__()
-
-    def __len__(self) -> None:
-        return self.qsize()
-
-    def clear(self) -> None:
-        self._queue.clear()
-
-    def shuffle(self) -> None:
-        random.shuffle(self._queue)
-
-    def remove(self, index: int) -> None:
-        del self._queue[index]
-
 # - - - - - - COG IMPLEMENTATION - - - - - -
 
 # Commands and events for greeting users
@@ -201,17 +175,61 @@ class Music(commands.Cog):
 
     def __init__(self, client) -> None:
         self.client = client
-        self.queues = {}
+        self.audio_manager = AudioManager()
 
     @app_commands.command(name="join")
     async def _join(self, interaction: discord.Interaction) -> None:
         """ Joins the caller's voice channel """
-        await interaction.response.send_message("", ephemeral=False)
+        if interaction.user.voice:
+            channel = interaction.user.voice.channel
+            await channel.connect()
+            await interaction.response.send_message(f"Joined {channel.name}.", ephemeral=True)
+        else
+            await interaction.response.send_message("An error occurred: You are not connected to any voice channel.", ephemeral=True)
     
     @app_commands.command(name="leave")
     async def _leave(self, interaction: discord.Interaction) -> None:
         """ Leaves the client's current voice channel """
-        await interaction.response.send_message("Interaction response", ephemeral=False)
+        voice_client = interaction.guild.voice_client
+        if voice_client and voice_client.is_connected()
+            await voice_client.disconnect()
+            await interaction.response.send_message("Left the voice channel", ephemeral=True)
+        else
+            await interaction.response.send_message("An error occurred: I'm not connected to any voice channel.", ephemeral=True)
+    
+    @app_commands.command(name="play")
+    async def _play(self, interaction: discord.Interaction, search: str) -> None:
+        """ Adds music to queue and starts playing """
+
+        # This is possibly a long command, think to seem normal
+        await interaction.response.defer(thinking=True)
+
+        voice_client = interaction.guild.voice_client
+
+        # Check if the bot is already connected to a channel
+        if not voice_client:
+            # Call the join method
+            await self._join(interaction)
+            # Get the (possibly new) voice_client
+            voice_client = interaction.guild.voice_client
+            
+            # Check if the bot joined successfully
+            if not voice_client:
+                return
+
+        # Get (audio_file, interaction) tuple from YTDL class
+        try:
+            source = await YTDLSource.create_source(interaction, search, self.bot.loop)
+        except YTDLError as e:
+            await interaction.followup.send(str(e), ephemeral=True)
+            return
+
+        # Send the audio tuple to the audiomanager
+        await self.audio_manager.add_to_queue(audio_tuple)
+
+        # TODO Create a pretty song embed here
+        embed = Song(
+
 
 @try_wrap
 async def setup(client: commands.Bot) -> None:
