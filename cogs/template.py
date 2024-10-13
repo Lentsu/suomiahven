@@ -8,12 +8,10 @@ import discord
 from cogs.auxillary import try_wrap
 
 # Commands and events for greeting users
-class Template(app_commands.Group):
+class Template(commands.Cog):
 
-    def __init__(self, client) -> None:
+    def __init__(self, client: commands.Bot) -> None:
         self.client = client
-        self.name = "Template"
-        self.description = "Template class"
 
     @app_commands.command(name="test")
     async def command(self, interaction: discord.Interaction) -> None:
@@ -23,5 +21,4 @@ class Template(app_commands.Group):
 @try_wrap
 async def setup(client: commands.Bot) -> None:
     """ Tries to load the Cog to the client and prints [OK] on success """
-    await client.tree.add_command(Template(client))
-
+    await client.add_cog(Template(client))

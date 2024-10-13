@@ -10,7 +10,7 @@ from cogs.auxillary import try_wrap
 # Commands and events for testing bot's latency
 class Ping(commands.Cog):
 
-    def __init__(self, client) -> None:
+    def __init__(self, client: commands.Bot) -> None:
         self.client = client
 
     @app_commands.command(name="ping")
@@ -20,5 +20,5 @@ class Ping(commands.Cog):
         await interaction.response.send_message(f"Pong! Latency: {latency} ms", ephemeral=False)
 
 @try_wrap
-async def setup(client) -> None:
+async def setup(client: commands.Bot) -> None:
     await client.add_cog(Ping(client))

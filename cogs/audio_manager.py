@@ -32,7 +32,7 @@ class SoundQueue(asyncio.Queue):
         del self._queue[index]
 
     def empty(self) -> bool:
-        return self._queue.empty()
+        return not self._queue
 
 class AudioManager:
     """Auxillary class to handle the discord audio resource"""
@@ -44,14 +44,14 @@ class AudioManager:
 
     async def enqueue(self, sound, interaction: discord.Interaction) -> None:
         """Enqueue a sound, start playing if not already playing"""
-        self.queue.put(sound)
+        await self.queue.put((sound,interaction))
         # If not currently playing, play the enqueued song
         if self.playing is None:
             await self.play_next(interaction)
         
     async def play_next(self, interaction: discord.Interaction) -> None:
         """Play the next sound in self.queue"""
-        if !self.queue.empty():
+        if not self.queue.empty():
             # Get the next sound from queue and parse it's filepath and interaction
             self.playing = await self.queue.get()
             sound_file, interaction = self.playing
@@ -63,12 +63,12 @@ class AudioManager:
                 audio_source = discord.FFmpegPCMAudio(sound_file)
                 # Send the audio for play in the voice client, callback to clean method
                 voice_client.play(audio_source, after=lambda e: self.clean(interaction))
-            else
+            else:
                 interaction.response.send_message("An error occurred: You are not connected to any voice channel.", ephemeral=True)
 
     def clean(self, interaction: discord.Interaction) -> None:
         """Callback after a sound is played"""
         self.playing = None
-        if !self.queue.empty():
-            # Create a play_next coroutine to the bot's event loop ???
+        if not self.queue.empty():
+            # Create a play_next coroutine to the bot's event loop
             interaction.client.loop.create_task(self.play_next(interaction))
