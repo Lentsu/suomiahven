@@ -8,7 +8,7 @@ def try_wrap (func):
         try:
             await func(*args, **kwargs)
             print ("[OK]")
-        except:
-            print ("[ERROR]")
+        except Exception as e:
+            print ("[ERROR]", e)
     return wrapper
 

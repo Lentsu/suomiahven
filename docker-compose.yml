@@ -1,0 +1,15 @@
+services:
+  suomiahven:
+    build: .
+    container_name: suomiahven
+    # Lue salaisuudet ja asetukset paikallisesta .env-tiedostosta (DISCORD_TOKEN ym.)
+    env_file:
+      - .env
+    environment:
+      - FFMPEG_PATH=/usr/bin/ffmpeg
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

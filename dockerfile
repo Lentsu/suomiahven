@@ -1,28 +1,29 @@
 # Käytetään Python 3.11 pohjakuvana
 FROM python:3.11-slim
 
-# Määritellään työskentelyhakemisto
+# Ympäristömuuttujat: ei .pyc-tiedostoja ja välitön lokitus
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FFMPEG_PATH=/usr/bin/ffmpeg
+
+# Työhakemisto
 WORKDIR /app
 
-# Asennetaan tarvittavat riippuvuudet, kuten FFMPEG
-RUN apt-get update && apt-get install -y \
+# Järjestelmäriippuvuudet (ffmpeg + varmenteet)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
-# Asennetaan tarvittavat Python-paketit
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Kopioi riippuvuudet ensin (parempi layer-cache)
+COPY requirements.txt /app/requirements.txt
 
-# Kopioidaan kaikki tiedostot projektihakemistoon
-COPY . .
+# Perusasennus (build-vaiheessa)
+RUN python -m pip install --no-cache-dir --upgrade pip \
+ && python -m pip install --no-cache-dir -r /app/requirements.txt
 
-# Tarkistetaan, onko .env-tiedosto olemassa ja lisätään FFMPEG_PATH
-RUN if [ -f .env ]; then \
-        echo "\nFFMPEG_PATH=/usr/bin/ffmpeg" >> .env; \
-    else \
-        echo "FFMPEG_PATH=/usr/bin/ffmpeg" > .env; \
-    fi
+# Kopioi lähdekoodi ja entrypoint
+COPY . /app
 
-# Asetetaan oletuskomento kontille
-CMD ["python", "main.py"]
+# Oletuskomento: Python-entrypoint hoitaa päivitykset ja botin ajon
+CMD ["python", "entrypoint.py"]
