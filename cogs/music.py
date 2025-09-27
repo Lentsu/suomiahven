@@ -52,7 +52,9 @@ async def async_text_to_speech(text, volume_change_dB=40, speech_rate=125):
 
 
 # Silence useless bug reports messages
-yt_dlp.utils.bug_reports_message = lambda: ''
+def silent_bug_report_message(*args, **kwargs):
+    return ''
+yt_dlp.utils.bug_reports_message = silent_bug_report_message
 
 class VoiceError(Exception):
     pass
