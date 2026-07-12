@@ -4,9 +4,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-# Import auxillary functions 
-from cogs.auxillary import try_wrap
-
 # Create the Help Cog to be loaded
 class Help(commands.Cog):
 
@@ -30,8 +27,4 @@ class Help(commands.Cog):
 
         # Send the embed as a reponse to interaction
         await interaction.response.send_message(embed=em, ephemeral=True)
-
-@try_wrap
-async def setup(client: commands.Bot) -> None:
-    await client.add_cog(Help(client))
 

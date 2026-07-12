@@ -1,66 +1,83 @@
-#   main.py
-import os                       # For shell
+"""
+Suomiahven
+==========
 
-# BEGIN HEADER
-""" An extensible and modular Discord bot written for personal use"""
+An extensible and modular Finnish Discord bot written for personal use.
+
+main.py : Entry point for the client.
+Initializes configuration, loads extensions, and starts the Discord client.
+"""
+import os
+import logging
+import yaml
+import discord
+from discord.ext import commands
+from dotenv import load_dotenv
+
+from audio.manager import AudioManager
+
 
 __author__      = "Lentsu, Veritorakka"
 __copyright__   = "Free to use"
-# END
-    
-# Import libraries
-import random                       # For randomizing stuff
-import discord                      # For Discord abstractions
-from discord import app_commands    # For client
-from discord.ext import commands    # For load_extension and other stuff
-from dotenv import load_dotenv      # For local Tokens
 
-# Custom class that extends commands.Bot with serverside functionality and cogs list
-class Client(commands.Bot):
+# Use logger with settings
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)-8s %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
-    # Init client 
-    def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=discord.Intents.all())
-        self.cogs_list = [
-            "greeter",
-            "ping",
-            "help",
-            "music"
-            #"template" #(This is needed for a cog to load)
-        ]
 
-    # Load all 'Cogs' as client extensions
+class SuomiAhven(commands.Bot):
+    """Toplevel client for Suomiahven"""
+    def __init__(self, config):
+        self.config = config
+        super().__init__(
+            command_prefix=commands.when_mentioned_or(self.config["bot"]["prefix"]),
+            intents=discord.Intents.all(),
+        )
+        self.cogs_list = self.config["cogs"]
+        self.audio = AudioManager()
+
+
+    # Load Cogs 
     async def setup_hook(self):
         for cog in self.cogs_list:
-            print(f"Loading {cog}", end='\t\t')
+            logger.info(f"Loading {cog}")
             await self.load_extension(f"cogs.{cog}")
+
 
     # When connection is made
     async def on_ready(self):
 
-        print("uname: " + self.user.name)
-        print("Bot ID: " + str(self.user.id))
-        
-        # Global sync the slash commands (NOTE: Discord server updates them with massive delay)
-        synced = await self.tree.sync()
-        print("Slash commands synced: " + str(len(synced)))
-        
-        # Print the synced slash commands
-        for command in self.tree.walk_commands():
-            print (f"/{command.name}")
+        logger.info("uname: " + self.user.name)
+        logger.info("Bot ID: " + str(self.user.id))
 
-        # Print the activity status
-        status = "/help (Bot in progress)"
+        # Global sync the slash commands (if enabled)
+        if self.config["bot"]["sync_commands"]:
+            synced = await self.tree.sync()
+            logger.info("Slash commands synced: " + str(len(synced)))
+
+        # Log the synced slash commands
+        for command in self.tree.walk_commands():
+            logger.info(f"/{command.name}")
+
+        # Log the activity status
+        status = self.config["bot"]["activity"]
         await self.change_presence(activity=discord.Game(name=status))
 
-# The main function
+
 def main():
-    # READ TOKENS FROM .ENV FILE
-    load_dotenv()   # Loads ./.env
-    DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-    # Run client
-    client = Client()
+    # READ secrets from .env file
+    load_dotenv()
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    # READ config.yml
+    with open("config.yml") as f:
+        config = yaml.safe_load(f)
+    client = SuomiAhven(config)
     client.run(DISCORD_TOKEN)
+
 
 # If this script was called directly
 if __name__ == "__main__":

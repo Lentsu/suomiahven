@@ -1,0 +1,16 @@
+bot:
+  prefix: "!"
+  activity: "/help"
+  sync_commands: true
+
+cogs:
+  - common
+  - help
+  - audio
+  - music
+
+audio:
+  idle_timeout: 60
+
+logging:
+  level: INFO

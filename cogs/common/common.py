@@ -1,14 +1,11 @@
-#   ping.py
+#   common.py
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-# Import auxillary functions 
-from cogs.auxillary import try_wrap
-
 # Commands and events for testing bot's latency
-class Ping(commands.Cog):
+class Common(commands.Cog):
 
     def __init__(self, client) -> None:
         self.client = client
@@ -18,7 +15,9 @@ class Ping(commands.Cog):
         """ Prints the bot's client latency in milliseconds. """
         latency = round(self.client.latency * 1000)  # Calculate bot's latency in milliseconds
         await interaction.response.send_message(f"Pong! Latency: {latency} ms", ephemeral=True)
+    
+    @app_commands.command(name="hello")
+    async def hello(self, interaction: discord.Interaction) -> None:
+        """Says hello"""
+        await interaction.response.send_message(f"Hello, {interaction.user.display_name}!", ephemeral=True)
 
-@try_wrap
-async def setup(client) -> None:
-    await client.add_cog(Ping(client))
