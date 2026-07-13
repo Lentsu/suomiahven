@@ -4,6 +4,8 @@ from discord.ext import commands
 from discord import app_commands
 import discord
 
+from utils.ensure_connected import ensure_connected
+
 class Audio(commands.Cog):
     """Voice connection commands."""
 
@@ -11,25 +13,9 @@ class Audio(commands.Cog):
         self.client = client
 
     @app_commands.command(name="join")
+    @ensure_connected
     async def join(self, interaction: discord.Interaction) -> None:
         """Joins your current voice channel."""
-        
-        if interaction.guild is None:
-            await interaction.response.send_message("You are not on any "
-                                                    "server.", ephemeral=True)
-            return
-
-        if interaction.user.voice is None:
-            await interaction.response.send_message("You are not on any "
-                                                    "voice channel.",
-                                                    ephemeral=True)
-            return
-
-        # Get session from client.audio (AudioManager)
-        session = self.client.audio.get_session(interaction.guild.id)
-
-        await session.connect(interaction.user.voice.channel)
-
         await interaction.response.send_message(
             f"Joined **{interaction.user.voice.channel.name}**."
         )
@@ -44,7 +30,7 @@ class Audio(commands.Cog):
                                                     "server.", ephemeral=True)
             return
 
-        # Get session from client.audio (AudioManager)
+        # Get session from AudioManager
         session = self.client.audio.get_session(interaction.guild.id)
 
         await session.disconnect()

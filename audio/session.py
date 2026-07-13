@@ -34,7 +34,15 @@ class AudioSession:
         else:
             await self.voice_client.move_to(channel)
 
+
+    async def ensure_connected(self, channel: discord.VoiceChannel):
+        """Connect to the right channel (if any)"""
+        if self.voice_client is None:
+            await self.connect(channel)
+        elif self.voice_client.channel != channel:
+            await self.move(channel)
     
+
     @property
     def idle(self):
         """Returns True if the client is idle on channel"""
