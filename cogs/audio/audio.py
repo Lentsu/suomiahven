@@ -26,8 +26,9 @@ class Audio(commands.Cog):
         """Leaves the current voice channel"""
 
         if interaction.guild is None:
-            await interaction.response.send_message("You are not on any "
-                                                    "server.", ephemeral=True)
+            await interaction.response.send_message(
+                "You are not on any server.", ephemeral=True
+            )
             return
 
         # Get session from AudioManager

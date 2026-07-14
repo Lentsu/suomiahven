@@ -4,13 +4,19 @@ import discord
 
 from .ytdl_source import YTDLSource
 
+from audio.playback_item import PlaybackItem
 
-class Song:
+
+class Song(PlaybackItem):
+    """Class to abstract YTDLSources to playback items"""
+
     __slots__ = ('source', 'requester')
 
-    def __init__(self, source: YTDLSource):
+
+    def __init__(self, source: YTDLSource, requester: discord.Member):
         self.source = source
-        self.requester = source.requester
+        self.requester = requester
+
 
     def create_embed(self):
         embed = (discord.Embed(title='Now playing',
